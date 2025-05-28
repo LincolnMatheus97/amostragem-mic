@@ -1,5 +1,7 @@
 #include "display.h"
 
+ssd1306_t display;
+
 void init_barr_i2c()
 {
     i2c_init(PORT_I2C, 400 * 1000);

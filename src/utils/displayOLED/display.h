@@ -1,3 +1,6 @@
+#ifndef DISPLAY_H
+#define DISPLAY_H
+
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
@@ -7,10 +10,12 @@
 #define PIN_SDA 14
 #define PIN_SCL 15
 
-ssd1306_t display;
+extern ssd1306_t display;
 
 void init_barr_i2c();
 void init_display();
 void draw_display(uint32_t x_text, uint32_t y_text, uint32_t scale_text, const char* text);
 void show_display();
 void clear_display();
+
+#endif

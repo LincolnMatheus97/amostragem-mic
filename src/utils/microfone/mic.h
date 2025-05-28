@@ -1,3 +1,6 @@
+#ifndef MIC_H
+#define MIC_H
+
 #include <stdio.h>
 #include <math.h>
 #include "pico/stdlib.h"
@@ -14,9 +17,11 @@
 #define ADC_MAX 3.3f
 #define ADC_STEP (3.3f/5.f)
 
-uint16_t adc_buffer[SAMPLES];
+extern uint16_t adc_buffer[SAMPLES];
 
 void init_config_adc();
 void sample_mic();
 float mic_power();
 uint8_t get_intensity(float v);
+
+#endif

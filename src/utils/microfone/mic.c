@@ -1,5 +1,7 @@
 #include "mic.h"
 
+uint16_t adc_buffer[SAMPLES];
+
 void init_config_adc()
 {
     adc_gpio_init(MIC_PIN);
