@@ -12,14 +12,14 @@
 
 // Parâmetros e macros do ADC.
 #define ADC_CLOCK_DIV 96.f
-#define SAMPLES 500 
+#define SAMPLES 2500 
 #define ADC_MAX 3.3f
 #define ADC_STEP (3.3f/5.f)
 
 // Constantes para cálculo de dB (decibeis)
-#define V_REF_DB 0.0002f                // Novo valor (200uV RMS) - Para tentar reduzir o piso de dB em ~20dB
+#define V_REF_DB 0.00004f               // Tensão de referência para cálculo de dB (40uV RMS)
 #define MIN_V_RMS_FOR_DB 0.000001f      // Tensão RMS mínima para cálculo de dB (1uV RMS)
-#define MIN_DB_DISPLAY_LEVEL 0.0f       // Nível mínimo de dB a ser exibido
+#define MIN_DB_DISPLAY_LEVEL 30.0f      // Nível mínimo de dB a ser exibido
 
 // Limiares para classificação de nível sonoro (ajuste conforme necessário)
 #define LIMIAR_DB_BAIXO_MODERADO 60.0f
