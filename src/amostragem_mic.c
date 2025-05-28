@@ -1,66 +1,62 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
-#include "hardware/dma.h"
+#include "display.h"
+#include "dma.h"
+#include "mic.h"
 
-// I2C defines
-// This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
-// Pins can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define I2C_PORT i2c0
-#define I2C_SDA 8
-#define I2C_SCL 9
-
-// Data will be copied from src to dst
-const char src[] = "Hello, world! (from DMA)";
-char dst[count_of(src)];
-
-
+#define abs(x) ((x < 0) ? (-x) : (x))
 
 int main()
 {
     stdio_init_all();
+    
+    clear_display();
+    char boas_vindas[20];
+    snprintf(boas_vindas, sizeof(boas_vindas), "INICIANDO SISTEMA");
+    draw_display(10, 32, 2, boas_vindas);
+    show_display();
+    sleep_ms(3000);
 
-    // I2C Initialisation. Using it at 400Khz.
-    i2c_init(I2C_PORT, 400*1000);
-    
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_SDA);
-    gpio_pull_up(I2C_SCL);
-    // For more examples of I2C use see https://github.com/raspberrypi/pico-examples/tree/master/i2c
+    clear_display();
+    init_config_adc();
+    char init_adc[20];
+    snprintf(init_adc, sizeof(init_adc), "CONFIGURANDO ADC");
+    draw_display(10, 32, 2, init_adc);
+    show_display();
+    sleep_ms(2000);
 
-    // Get a free channel, panic() if there are none
-    int chan = dma_claim_unused_channel(true);
+    clear_display();
+    init_config_dma();
+    char init_dma[20];
+    snprintf(init_dma, sizeof(init_dma), "CONFIGURANDO DMA");
+    draw_display(10, 32, 2, init_dma);
+    show_display();
     
-    // 8 bit transfers. Both read and write address increment after each
-    // transfer (each pointing to a location in src or dst respectively).
-    // No DREQ is selected, so the DMA transfers as fast as it can.
-    
-    dma_channel_config c = dma_channel_get_default_config(chan);
-    channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
-    channel_config_set_read_increment(&c, true);
-    channel_config_set_write_increment(&c, true);
-    
-    dma_channel_configure(
-        chan,          // Channel to be configured
-        &c,            // The configuration we just created
-        dst,           // The initial write address
-        src,           // The initial read address
-        count_of(src), // Number of transfers; in this case each is 1 byte.
-        true           // Start immediately.
-    );
-    
-    // We could choose to go and do something else whilst the DMA is doing its
-    // thing. In this case the processor has nothing else to do, so we just
-    // wait for the DMA to finish.
-    dma_channel_wait_for_finish_blocking(chan);
-    
-    // The DMA has now copied our text from the transmit buffer (src) to the
-    // receive buffer (dst), so we can print it out from there.
-    puts(dst);
+    sleep_ms(5000);
 
-    while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
+    while (1)
+    {
+        sample_mic();
+
+        float avg = mic_power();
+        avg = 2.f * abs(ADC_ADJUST(avg));
+
+        uint intensity = get_intensity(avg);
+
+        clear_display();
+
+        char titule[30];
+        snprintf(titule, sizeof(titule), "Intensidade Sonora");
+        draw_display(0, 0, 1, titule);
+        show_display();
+
+        char leitura_som[30];
+        snprintf(leitura_som, sizeof(leitura_som), "Leitura: %2n %8.4f", intensity, avg);
+        draw_display(0, 32, 1, leitura_som);
+        show_display();
+        
+        sleep_ms(500);
     }
+
+    return 0;
 }
