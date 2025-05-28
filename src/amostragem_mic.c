@@ -9,6 +9,8 @@
 int main()
 {
     stdio_init_all();
+    init_barr_i2c();
+    init_display();
     
     clear_display();
     char boas_vindas[20];
