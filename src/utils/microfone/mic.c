@@ -1,6 +1,6 @@
 #include "mic.h"
 
-void config_adc()
+void init_config_adc()
 {
     adc_gpio_init(MIC_PIN);
     adc_init();

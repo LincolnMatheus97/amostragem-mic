@@ -16,7 +16,7 @@
 
 uint16_t adc_buffer[SAMPLES];
 
-void config_adc();
+void init_config_adc();
 void sample_mic();
 float mic_power();
 uint8_t get_intensity(float v);

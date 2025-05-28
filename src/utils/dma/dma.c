@@ -1,6 +1,6 @@
 #include "dma.h"
 
-void config_dma()
+void init_config_dma()
 {
     dma_cfg = dma_channel_get_default_config(dma_channel);
 

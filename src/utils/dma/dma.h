@@ -6,4 +6,4 @@
 uint dma_channel;
 dma_channel_config dma_cfg;
 
-void config_dma();
+void init_config_dma();
