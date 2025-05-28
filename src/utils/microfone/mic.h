@@ -17,7 +17,6 @@
 #define ADC_MAX 3.3f
 #define ADC_STEP (3.3f/5.f)
 
-extern uint16_t adc_buffer[SAMPLES];
 
 void init_config_adc();
 void sample_mic();

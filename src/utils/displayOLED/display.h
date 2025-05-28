@@ -9,8 +9,7 @@
 #define PORT_I2C i2c1
 #define PIN_SDA 14
 #define PIN_SCL 15
-
-extern ssd1306_t display;
+#define ADD_DISPLAY 0X3C
 
 void init_barr_i2c();
 void init_display();

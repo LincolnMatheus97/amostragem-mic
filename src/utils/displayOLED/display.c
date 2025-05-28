@@ -13,7 +13,7 @@ void init_barr_i2c()
 
 void init_display()
 {
-    ssd1306_init(&display, 128, 64, 0x3C, PORT_I2C);
+    ssd1306_init(&display, 128, 64, ADD_DISPLAY, PORT_I2C);
 }
 
 void draw_display(uint32_t x_text, uint32_t y_text, uint32_t scale_text, const char* text)
