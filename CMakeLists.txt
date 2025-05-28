@@ -37,12 +37,15 @@ pico_sdk_init()
 file(GLOB_RECURSE MAIN "src/amostragem_mic.c")
 # set path to utility files
 file(GLOB_RECURSE UTILS "src/utils/**/*.c")
+# set path to includes
+file(GLOB_RECURSE LIB "lib/ssd1306/*.c")
 
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(amostragem_mic 
         ${MAIN}
         ${UTILS}
+        ${LIB}
 )
 
 pico_set_program_name(amostragem_mic "amostragem_mic")
@@ -64,6 +67,9 @@ target_include_directories(amostragem_mic PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/displayOLED
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/dma
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/microfone
+        ${CMAKE_CURRENT_LIST_DIR}/lib
+        ${CMAKE_CURRENT_LIST_DIR}/lib/ssd1306
+        
 )
 
 # Add any user requested libraries
