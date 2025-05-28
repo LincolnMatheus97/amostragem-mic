@@ -78,6 +78,7 @@ target_link_libraries(amostragem_mic
         hardware_dma
         hardware_timer
         hardware_clocks
+        hardware_adc
         )
 
 pico_add_extra_outputs(amostragem_mic)
