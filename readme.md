@@ -31,7 +31,7 @@ O código fonte está organizado da seguinte forma:
 
 O processo para estimar o nível de decibéis (dB) do ambiente envolve algumas etapas chave, desde a captação do som até os cálculos finais:
 
-1.  **Captação e Amplificação:** O microfone na placa (que usa um amplificador MAX4466) [cite: 88, 5] captura as ondas sonoras e as converte em um sinal elétrico analógico. Este sinal é amplificado para que possa ser lido adequadamente pelo ADC.
+1.  **Captação e Amplificação:** O microfone na placa (que usa um amplificador MAX4466) captura as ondas sonoras e as converte em um sinal elétrico analógico. Este sinal é amplificado para que possa ser lido adequadamente pelo ADC.
 2.  **Conversão Analógico-Digital (ADC):** O Raspberry Pi Pico utiliza seu ADC interno (com resolução de 12 bits) para converter o sinal analógico do microfone em valores digitais. A função `init_config_adc` prepara o ADC, selecionando o pino (GP28) e configurando a taxa de amostragem (via `ADC_CLOCK_DIV`) e o buffer FIFO.
 3.  **Amostragem via DMA:** Para coletar os dados do ADC de forma eficiente sem sobrecarregar a CPU, usamos o DMA (Acesso Direto à Memória). A função `sample_mic` configura o DMA para transferir um número definido de amostras (`SAMPLES`, atualmente 2500) do FIFO do ADC para um buffer na memória (`adc_buffer`).
 4.  **Cálculo da Tensão RMS (`get_voltage_rms`):** Esta é a etapa central do processamento:
