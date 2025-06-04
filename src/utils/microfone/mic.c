@@ -43,27 +43,28 @@ float get_voltage_rms()
     if (SAMPLES == 0)
         return 0.0f;
 
-    // Calcular media das amostras digitais DC (Corrente Continua)
     float dc_offset_digital = 0.0f;
     for (uint i = 0; i < SAMPLES; i++)
-    {
         dc_offset_digital += adc_buffer[i];
-    }
     dc_offset_digital /= SAMPLES;
 
-    // Calcular a soma dos quadrados das amostras AC(Corrente Alternada), ou seja (amostra_digital - offset_dc_digital)
     float sum_sq_ac_digital = 0.0f;
-    for (uint i = 0; i < SAMPLES; i++)
-    {
-        float ac_sample_digital = (float)adc_buffer[i] - dc_offset_digital;
-        sum_sq_ac_digital += ac_sample_digital * ac_sample_digital;
+    for (uint i = 0; i < SAMPLES; i++) {
+        float ac_sample = (float)adc_buffer[i] - dc_offset_digital;
+        sum_sq_ac_digital += ac_sample * ac_sample;
     }
 
-    // Calcular o RMS (Root Mean Square) das amostrar AC (em unidades digitais)
-    float rms_ac_digital = sqrt(sum_sq_ac_digital / SAMPLES);
+    float rms_ac_digital = sqrtf(sum_sq_ac_digital / SAMPLES);
 
-    // Converter a tensão do RMS. A tensão de referência do ADC é 3.3V e tem 12 bits de resolução (0-4095)
-    float voltage_rms = rms_ac_digital * (3.3f / (1 << 12u));
+    if (rms_ac_digital < 5.0f) // filtro de ruído
+        return 0.0f;
+
+    float voltage_rms = rms_ac_digital * (3.3f / 4096.0f);
+
+    // suavização
+    // static float last_voltage_rms = 0.0f;
+    // voltage_rms = 0.5f * last_voltage_rms + 0.5f * voltage_rms;
+    // last_voltage_rms = voltage_rms;
 
     return voltage_rms;
 }
@@ -77,31 +78,22 @@ float get_db_simulated(float voltage_rms)
 
     if (voltage_rms < MIN_V_RMS_FOR_DB)
     {
-        db_level = 20.0f * log10f(MIN_V_RMS_FOR_DB / V_REF_DB);
-        if (db_level < MIN_DB_DISPLAY_LEVEL && MIN_DB_DISPLAY_LEVEL == 0.0f)
-        {
-            db_level = MIN_DB_DISPLAY_LEVEL;
-        }
-        else if (db_level < -99.0f)
-        {
-            db_level = -99.0f;
-        }
+        db_level = MIN_DB_DISPLAY_LEVEL;
     }
     else
     {
-        db_level = 20.0f * log10f(voltage_rms / V_REF_DB);
+        db_level = 20.0f * log10f(voltage_rms / V_REF_DB) + 15.0f;
     }
 
-    if (db_level < MIN_DB_DISPLAY_LEVEL && voltage_rms >= MIN_V_RMS_FOR_DB)
+    if (db_level < MIN_DB_DISPLAY_LEVEL)
     {
-        // Se o cálculo resultou em algo abaixo do mínimo desejado (e não era o caso de tensão muito baixa)
-        // Isso pode acontecer se V_REF_DB for muito maior que voltage_rms
         db_level = MIN_DB_DISPLAY_LEVEL;
     }
     if (db_level > 120.0f)
     {
         db_level = 120.0f;
     }
+
     return db_level;
 }
 
