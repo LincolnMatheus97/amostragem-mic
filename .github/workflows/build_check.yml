@@ -1,0 +1,25 @@
+name: Build and Test Pico Project
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout project code
+      uses: actions/checkout@v4
+
+    - name: Checkout Pico SDK
+      run: git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git ../pico-sdk
+
+    - name: Create Build Directory
+      run: mkdir build
+
+    - name: Run CMake
+      run: cmake -B build -S . -DPICO_SDK_PATH=../pico-sdk
+
+    - name: Run Make
+      run: make -C build
