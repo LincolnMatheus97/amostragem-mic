@@ -35,6 +35,9 @@ int main()
         float voltage_rms = get_voltage_rms(); // Obtém a tensão RMS do microfone
         float db_level = get_db_simulated(voltage_rms); // Calcula o nível relativo de dB a partir da tensão RMS
         const char* sound_level = classify_sound_level(db_level); // Classifica o nível sonoro
+        
+        // LINHA ADICIONADA PARA DEBUG, MAS COM ERRO DE SINTAXE
+        printf("Debug: O nível de dB é %.1f\n", db_level) // <--- FALTANDO O PONTO E VÍRGULA!
 
         clear_display();
 
