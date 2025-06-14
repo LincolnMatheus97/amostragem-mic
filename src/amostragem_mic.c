@@ -36,6 +36,8 @@ int main()
         float db_level = get_db_simulated(voltage_rms); // Calcula o nível relativo de dB a partir da tensão RMS
         const char* sound_level = classify_sound_level(db_level); // Classifica o nível sonoro
 
+        printf("Debug: O nível de dB é %.1f\n", db_level); 
+
         clear_display();
 
         char title[30];
