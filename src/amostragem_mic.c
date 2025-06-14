@@ -39,6 +39,7 @@ int main()
         // LINHA ADICIONADA PARA DEBUG, MAS COM ERRO DE SINTAXE
         printf("Debug: O nível de dB é %.1f\n", db_level) // <--- FALTANDO O PONTO E VÍRGULA!
 
+        
         clear_display();
 
         char title[30];
