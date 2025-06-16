@@ -4,7 +4,6 @@
 #include "dma.h"
 #include "mic.h"
 
-
 int main()
 {
     stdio_init_all();
