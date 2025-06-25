@@ -75,5 +75,4 @@ Para obter leituras de intensidade sonora mais significativas e classificações
 * Raspberry Pi Pico SDK
 * Hardware I2C e ADC do Raspberry Pi Pico
 * Biblioteca SSD1306 (geralmente incluída ou adaptada no projeto para o Pico)
-
 ---
