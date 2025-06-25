@@ -3,7 +3,6 @@
 ## 1. Descrição Geral
 
 Este projeto demonstra como realizar a amostragem de um sinal de áudio de um microfone utilizando o Conversor Analógico-Digital (ADC) e o Acesso Direto à Memória (DMA) em um microcontrolador Raspberry Pi Pico. O sistema calcula a tensão RMS (Root Mean Square) do sinal capturado, converte essa tensão para um nível sonoro simulado em decibéis (dB) e classifica a intensidade sonora em categorias como "Baixo", "Moderado" ou "Alto". Todas essas informações são exibidas em tempo real em um display OLED SSD1306.
-
 Este projeto foi desenvolvido com base nas funcionalidades de amostragem de microfone via DMA, similar ao encontrado no projeto `microphone_dma` de BitDogLab, adaptando-o para incluir a análise de intensidade sonora e a integração com um display OLED para visualização dos dados.
 
 ## 2. Funcionalidades Principais
@@ -75,5 +74,4 @@ Para obter leituras de intensidade sonora mais significativas e classificações
 * Raspberry Pi Pico SDK
 * Hardware I2C e ADC do Raspberry Pi Pico
 * Biblioteca SSD1306 (geralmente incluída ou adaptada no projeto para o Pico)
-
 ---
