@@ -17,7 +17,7 @@
 #define ADC_STEP (3.3f/5.f)
 
 // Constantes para cálculo de dB (decibeis)
-#define V_REF_DB 0.002f                 // Tensão de referência para cálculo de dB (40uV RMS)
+#define V_REF_DB 0.0005f                 // Tensão de referência para cálculo de dB (40uV RMS)
 #define MIN_V_RMS_FOR_DB 0.000001f      // Tensão RMS mínima para cálculo de dB (1uV RMS)
 #define MIN_DB_DISPLAY_LEVEL 30.0f      // Nível mínimo de dB a ser exibido
 
