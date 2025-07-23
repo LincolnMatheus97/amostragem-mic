@@ -3,13 +3,16 @@
 #include "display.h"
 #include "dma.h"
 #include "mic.h"
-
+#include "matriz.h"
 
 int main()
 {
     stdio_init_all();
     init_barr_i2c(); // Inicializa a barramento I2C para o display OLED
     init_display(); // Inicializa o display OLED
+    inicializar_matriz();
+
+    limpar_matriz();
     
     clear_display();
     char boas_vindas[20];
@@ -36,7 +39,23 @@ int main()
         float db_level = get_db_simulated(voltage_rms); // Calcula o nível relativo de dB a partir da tensão RMS
         const char* sound_level = classify_sound_level(db_level); // Classifica o nível sonoro
 
-        printf("Debug: O nível de dB é %.1f\n", db_level); 
+        printf("Debug: O nível de dB é %.1f\n", db_level);
+
+        int qnt_leds_acessos = 0;
+        if (db_level > MIN_DB_MAPA)
+        {
+            qnt_leds_acessos = ((db_level - MIN_DB_MAPA) / (MAX_DB_MAPA - MIN_DB_MAPA)) * QTD_LEDS;
+        }
+
+        if (qnt_leds_acessos > QTD_LEDS) {
+            qnt_leds_acessos = QTD_LEDS;
+        }
+        if (qnt_leds_acessos < 0) {
+            qnt_leds_acessos = 0;
+        }
+
+        atualizar_ledbar(qnt_leds_acessos);
+        renderizar();
 
         clear_display();
 
@@ -49,7 +68,7 @@ int main()
         draw_display(0, 16, 1, db_val);
         
         char nivel_desc[30];
-        char aviso_extra[30] = ""; 
+        char aviso_extra[30] = "";
 
         if (sound_level == "Baixo") {
             snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Baixo");
