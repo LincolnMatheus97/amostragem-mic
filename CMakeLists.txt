@@ -48,6 +48,10 @@ add_executable(amostragem_mic
         ${LIB}
 )
 
+add_subdirectory(
+    lib/RP2040-WS2812B-Animation
+)
+
 pico_set_program_name(amostragem_mic "amostragem_mic")
 pico_set_program_version(amostragem_mic "0.1")
 
@@ -57,7 +61,19 @@ pico_enable_stdio_usb(amostragem_mic 1)
 
 # Add the standard library to the build
 target_link_libraries(amostragem_mic
+        hardware_i2c
+        hardware_dma
+        hardware_timer
+        hardware_clocks
+        hardware_adc
+        ws2812b_animation
         pico_stdlib)
+
+pico_generate_pio_header(amostragem_mic ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/ws2812.pio)
+
+target_sources(amostragem_mic PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/ws2812b_animation.c
+)
 
 # Add the standard include files to the build
 target_include_directories(amostragem_mic PRIVATE
@@ -67,19 +83,41 @@ target_include_directories(amostragem_mic PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/displayOLED
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/dma
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/microfone
+        ${CMAKE_CURRENT_LIST_DIR}/src/utils/matriz
         ${CMAKE_CURRENT_LIST_DIR}/lib
         ${CMAKE_CURRENT_LIST_DIR}/lib/ssd1306
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc/CP0-EU
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc/utf8-iterator/source
         
 )
 
 # Add any user requested libraries
-target_link_libraries(amostragem_mic 
-        hardware_i2c
-        hardware_dma
-        hardware_timer
-        hardware_clocks
-        hardware_adc
+target_link_libraries(amostragem_mic
+
         )
 
 pico_add_extra_outputs(amostragem_mic)
 
+
+# Configuração da biblioteca ws2812b_animation
+set(TARGET_NAME "ws2812b_animation")
+
+if (NOT TARGET ${TARGET_NAME})
+    add_library(${TARGET_NAME} INTERFACE)
+
+    target_sources(${TARGET_NAME} INTERFACE
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/ws2812b_animation.c
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc/utf8-iterator/source/utf-8.c
+    )
+
+    target_include_directories(${TARGET_NAME} INTERFACE
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc/CP0-EU
+        ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc/utf8-iterator/source
+    )
+
+    target_link_libraries(${TARGET_NAME} INTERFACE
+        hardware_pio
+    )
+endif()
