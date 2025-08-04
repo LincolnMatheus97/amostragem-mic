@@ -82,7 +82,7 @@ float get_db_simulated(float voltage_rms)
     }
     else
     {
-        db_level = 20.0f * log10f(voltage_rms / V_REF_DB) + 15.0f;
+        db_level = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
     }
 
     if (db_level < MIN_DB_DISPLAY_LEVEL)
