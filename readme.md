@@ -103,10 +103,16 @@ Para resolver isso, o sistema foi refatorado para usar os dois núcleos do proce
 
 A comunicação entre os núcleos é feita através de variáveis globais `volatile`.
 
-### 7.4. Desafios Atuais e Próximos Passos (Depuração)
-Apesar da arquitetura multicore ter sido implementada corretamente, dois problemas persistem, indicando um conflito de hardware de baixo nível mais complexo do que o esperado:
+### 7.4. Solução para o Congelamento da Interface (Conflito de Hardware)
+Mesmo com a arquitetura multicore, a ativação do buzzer (que usa o periférico PWM) ainda causava o congelamento da matriz de LED (PIO). A causa foi identificada como um conflito de hardware de baixo nível, onde a alta frequência do PWM interferia com a temporização do PIO.
 
-1. **Congelamento da Interface Durante o Alarme:** Mesmo com os núcleos separados, a ativação do buzzer (que usa o periférico PWM) ainda causa o congelamento da matriz de LED (que usa o periférico PIO) e, por vezes, do display (I2C). A hipótese atual é que a alta frequência de operação do PWM está causando interferência nos temporizadores ou no barramento de dados que o PIO e o I2C necessitam para operar, desestabilizando a comunicação do Núcleo 1 com a interface.
-2. **Leituras Incorretas ("Salto para 30 dB"):** O sistema ocasionalmente exibe uma leitura válida de som seguida imediatamente por uma leitura do valor mínimo (30 dB), especialmente após um som alto e repentino. A causa raiz foi identificada como uma falha na inicialização do canal de DMA (corrigida em `dma.c`) e a falta de um reset robusto do hardware ADC/DMA entre as amostragens (corrigido na função `sample_mic` em `mic.c`).
+**Solução Implementada:** Foi criado um mecanismo de cooperação entre os núcleos. O Núcleo 1 (interface), antes de renderizar a matriz, sinaliza para o Núcleo 0 (lógica) pausar o buzzer por um intervalo de microssegundos. Essa pausa é inaudível, mas suficiente para o PIO transmitir os dados sem interferência, permitindo que o alarme e a ledbar funcionem simultaneamente sem travamentos.
 
-O próximo passo crucial na depuração é resolver o conflito de hardware. A estratégia atual é criar um "cessar-fogo" gerenciado por software, onde o Núcleo 1 intencionalmente pausa a atualização da matriz de LED (a tarefa mais sensível ao tempo) durante o 1 segundo em que o alarme sonoro está ativo, evitando assim o travamento do sistema.
+### 7.5. Solução para a Instabilidade Visual (Salto para 30 dB)
+O sistema ocasionalmente exibia uma leitura válida de som seguida por um "salto" para o valor mínimo de 30 dB, especialmente após um som alto e repentino, dando uma aparência instável.
+
+**Solução Implementada:** A causa raiz foi rastreada até a ordem do processamento de sinal. A solução foi refatorar a lógica em `mic.c` para:
+
+1. Calcular o dB "cru".
+2. Limitar este valor a um piso seguro de 30 dB para evitar que números negativos extremos (do logaritmo) entrem no próximo passo.
+3. Aplicar um filtro de suavização assimétrica ("ataque rápido, decaimento lento") ao valor já seguro, garantindo que a ledbar suba instantaneamente com o som e desça suavemente, resultando em uma visualização profissional e estável.
