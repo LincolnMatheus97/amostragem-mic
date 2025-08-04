@@ -9,29 +9,24 @@ void inicializar_matriz()
 
 void atualizar_ledbar(int qnt_leds)
 {
-    const int limite_verde = 10;
-    const int limite_amarelo = 20;
+    ws2812b_clear(); // Limpa a matriz antes de desenhar
 
-    for (int i = 0; i < QTD_LEDS; i++)
+    for (int i = 0; i < qnt_leds; i++)
     {
-        if (i < qnt_leds)
+        if (i < LEDS_VERDES)
         {
-            if (i < limite_verde)
-            {
-                ws2812b_fill(i, i, GRB_GREEN);
-            }
-            else if (i < limite_amarelo)
-            {
-                ws2812b_fill(i, i, GRB_YELLOW);
-            }
-            else
-            {
-                ws2812b_fill(i, i, GRB_RED);
-            }
+            // Este LED está na faixa verde
+            ws2812b_put(i, GRB_GREEN);
+        }
+        else if (i < LEDS_VERDES + LEDS_AMARELOS)
+        {
+            // Este LED está na faixa amarela
+            ws2812b_put(i, GRB_YELLOW);
         }
         else
         {
-            ws2812b_fill(i, i, GRB_BLACK);
+            // Este LED está na faixa vermelha
+            ws2812b_put(i, GRB_RED);
         }
     }
 }
