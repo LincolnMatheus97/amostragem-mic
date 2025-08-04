@@ -66,7 +66,9 @@ target_link_libraries(amostragem_mic
         hardware_timer
         hardware_clocks
         hardware_adc
+        hardware_pwm
         ws2812b_animation
+        pico_multicore
         pico_stdlib)
 
 pico_generate_pio_header(amostragem_mic ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/ws2812.pio)
@@ -84,6 +86,7 @@ target_include_directories(amostragem_mic PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/dma
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/microfone
         ${CMAKE_CURRENT_LIST_DIR}/src/utils/matriz
+        ${CMAKE_CURRENT_LIST_DIR}/src/utils/buzzer
         ${CMAKE_CURRENT_LIST_DIR}/lib
         ${CMAKE_CURRENT_LIST_DIR}/lib/ssd1306
         ${CMAKE_CURRENT_LIST_DIR}/lib/RP2040-WS2812B-Animation/inc
