@@ -9,44 +9,56 @@
 #include "matriz.h"
 #include "buzzer.h"
 
-// Variáveis globais para comunicação entre os núcleos
+// --- Variáveis globais para comunicação entre os núcleos ---
 volatile float g_db_level = 0.0f;
 volatile int g_qnt_leds_acessos = 0;
 volatile const char* g_sound_level_str = "Iniciando";
-volatile bool g_alarm_beeping = false;
+volatile bool g_is_alarm_active = false; // Indica se o alarme (sonoro e visual) está ativo
+volatile bool g_pause_buzzer_for_render = false; // Flag para cooperação entre núcleos
 
 // --- NÚCLEO 1: APENAS INTERFACE DE USUÁRIO ---
 void core1_entry() {
-    // 1. Inicializa APENAS o hardware da interface (Display e Matriz)
     inicializar_matriz();
     init_barr_i2c();
     init_display();
 
-    // 2. Mostra as mensagens de boas-vindas
     clear_display();
     draw_display(10, 32, 1, "INICIANDO SISTEMA");
     show_display();
     sleep_ms(2000);
-
     clear_display();
-    draw_display(5, 28, 1, "SISTEMA ATIVO");
+    draw_display(10, 32, 1, "SISTEMA ATIVO");
     show_display();
     sleep_ms(2000);
 
-    // 3. Loop infinito de atualização da UI
     char sound_level_local[16];
     while (1) {
+        // Copia os dados globais para variáveis locais para evitar condições de corrida
         float db_level_local = g_db_level;
         int leds_local = g_qnt_leds_acessos;
         strcpy(sound_level_local, (const char *)g_sound_level_str);
 
-        if (!g_alarm_beeping) {
-            atualizar_ledbar(leds_local);
-            renderizar();
+        // A matriz de LED SEMPRE reflete o nível de som atual, sem piscar
+        atualizar_ledbar(leds_local);
+
+        // --- LÓGICA DE COOPERAÇÃO ---
+        // Se o alarme sonoro estiver ativo, peça ao Núcleo 0 para pausar o buzzer brevemente
+        if (g_is_alarm_active) {
+            g_pause_buzzer_for_render = true;
+            busy_wait_us_32(100); // Um delay mínimo para garantir que o Núcleo 0 veja a flag
         }
+
+        renderizar(); // A operação crítica que causa o conflito (atualiza a matriz via PIO)
+
+        // Libera o buzzer imediatamente após a atualização da matriz
+        if (g_is_alarm_active) {
+            g_pause_buzzer_for_render = false;
+        }
+        
+        // O display OLED continua atualizando normalmente
         display_update(db_level_local, sound_level_local);
 
-        sleep_ms(50);
+        sleep_ms(30);
     }
 }
 
@@ -64,12 +76,10 @@ int main()
     
     sleep_ms(4000); 
 
-    // --- MUDANÇA: Nova máquina de estados para o alarme ---
-    enum AlarmState { IDLE, BEEPING, COOLDOWN };
-    enum AlarmState alarm_state = IDLE;
-
-    uint64_t alarme_start_time = 0;
-    const uint64_t ALARME_DURACAO_US = 1000 * 1000; // 1 segundo em microssegundos
+    // Variáveis para a lógica de alarme sustentado
+    uint64_t high_level_start_time = 0;
+    bool high_level_timer_running = false;
+    const uint64_t ALARME_SUSTENTADO_US = TEMPO_ALARME_SUSTENTADO_S * 1000 * 1000;
 
     while (1)
     {
@@ -78,51 +88,53 @@ int main()
         float db_level = get_db_simulated(voltage_rms);
         const char* sound_level = classify_sound_level(db_level);
 
+        // Atualiza as variáveis globais para o Núcleo 1
         g_db_level = db_level;
         g_sound_level_str = sound_level;
         
         int qnt_leds_acessos = (int)((db_level - MIN_DB_MAPA) / (MAX_DB_MAPA - MIN_DB_MAPA) * QTD_LEDS);
+        
         if (qnt_leds_acessos > QTD_LEDS) {
             qnt_leds_acessos = QTD_LEDS;
-        } else if(qnt_leds_acessos < 1) {
-            qnt_leds_acessos = 1;
-        }
+        } else if (qnt_leds_acessos < 0) {
+           qnt_leds_acessos = 0; 
+        } 
+        
         g_qnt_leds_acessos = qnt_leds_acessos;
 
-        // --- MÁQUINA DE ESTADOS DO ALARME ---
-        switch (alarm_state) {
-            case IDLE:
-                // Se o som ficar alto, começa a apitar.
-                if (strcmp(sound_level, "Alto") == 0) {
-                    printf("ALERTA: Ruido alto detectado. Iniciando beep.\n");
-                    // Para deixar o som mais alto, aumente a frequência. Tente 2000, 3000, etc.
-                    set_pwm_buzzer(PINO_BUZZER, 3000, 50); // Som mais agudo e alto
-                    alarme_start_time = time_us_64();
-                    alarm_state = BEEPING;
+        // --- LÓGICA DE ALARME SUSTENTADO ---
+        if (strcmp(sound_level, "Alto") == 0) {
+            // Se o som está alto e o timer não foi iniciado, inicie-o
+            if (!high_level_timer_running) {
+                high_level_start_time = time_us_64();
+                high_level_timer_running = true;
+                printf("Nivel alto detectado. Iniciando contagem para alarme...\n");
+            }
+            // Se o timer está rodando e o tempo foi atingido, ative o alarme
+            else if (time_us_64() - high_level_start_time > ALARME_SUSTENTADO_US) {
+                if (!g_is_alarm_active) {
+                    printf("ALARME ATIVADO: Nivel alto sustentado!\n");
                 }
-                break;
-
-            case BEEPING:
-                // Se o beep já tocou por tempo suficiente, para e entra em cooldown.
-                if (time_us_64() - alarme_start_time > ALARME_DURACAO_US) {
-                    printf("Beep de 1s finalizado. Entrando em modo Cooldown.\n");
-                    set_pwm_buzzer(PINO_BUZZER, 0, 0); // Desliga o buzzer
-                    alarm_state = COOLDOWN;
-                }
-                break;
-            
-            case COOLDOWN:
-                // Fica neste estado (com o buzzer desligado) até o som baixar.
-                // Isso evita que o alarme toque repetidamente.
-                if (strcmp(sound_level, "Alto") != 0) {
-                    printf("Ruido normalizado. Sistema de alerta rearmado.\n");
-                    alarm_state = IDLE;
-                }
-                break;
+                g_is_alarm_active = true;
+            }
+        } else {
+            // Se o som não está mais alto, resete tudo
+            high_level_timer_running = false;
+            if (g_is_alarm_active) {
+                printf("Alarme desativado. Nivel de ruido normalizado.\n");
+            }
+            g_is_alarm_active = false;
         }
 
-        printf("Debug Nucleo 0: dB: %.1f, Class: %s, AlarmState: %d\n", g_db_level, g_sound_level_str, alarm_state);
-        sleep_ms(100); 
+        // --- CONTROLE DO BUZZER ---
+        if (g_is_alarm_active && !g_pause_buzzer_for_render) {
+            set_pwm_buzzer(PINO_BUZZER, 3000, 50); // Liga o buzzer
+        } else {
+            set_pwm_buzzer(PINO_BUZZER, 0, 0); // Desliga o buzzer (seja por pausa ou alarme inativo)
+        }
+
+        printf("Debug Nucleo 0: dB: %.1f, Alarm Active: %d, Paused: %d\n", g_db_level, g_is_alarm_active, g_pause_buzzer_for_render);
+        sleep_ms(50); 
     }
 
     return 0;
