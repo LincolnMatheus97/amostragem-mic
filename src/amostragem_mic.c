@@ -39,7 +39,7 @@ int main()
         float db_level = get_db_simulated(voltage_rms); // Calcula o nível relativo de dB a partir da tensão RMS
         const char* sound_level = classify_sound_level(db_level); // Classifica o nível sonoro
 
-        printf("Debug: O nível de dB é %.1f\n", db_level);
+        printf("Debug: O nível de dB é %.1f, e a voltagem rms do mic é %.1f\n", db_level, voltage_rms);
 
         int qnt_leds_acessos = 0;
         if (db_level > MIN_DB_MAPA)
@@ -49,9 +49,8 @@ int main()
 
         if (qnt_leds_acessos > QTD_LEDS) {
             qnt_leds_acessos = QTD_LEDS;
-        }
-        if (qnt_leds_acessos < 0) {
-            qnt_leds_acessos = 0;
+        } else if(qnt_leds_acessos < 1) {
+            qnt_leds_acessos = 1;
         }
 
         atualizar_ledbar(qnt_leds_acessos);
