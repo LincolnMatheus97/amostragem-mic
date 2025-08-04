@@ -4,6 +4,9 @@
 #include "ws2812b_animation.h"
 #include "pico/stdlib.h"
 
+#define LEDS_VERDES 13
+#define LEDS_AMARELOS 7
+#define LEDS_VERMELHOS 5
 #define MIN_DB_MAPA 35.0f
 #define MAX_DB_MAPA 85.0f
 
