@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "pico/stdlib.h"
+#include "hardware/adc.h"
 #include "dma.h"
 
 // Pino e canal do microfone no ADC.
