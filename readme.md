@@ -76,4 +76,37 @@ Para obter leituras de intensidade sonora mais significativas e classificações
 * Hardware I2C e ADC do Raspberry Pi Pico
 * Biblioteca SSD1306 (geralmente incluída ou adaptada no projeto para o Pico)
 
----
+## 7. Evolução do Projeto: Do Básico ao Sistema Multicore
+
+Após a implementação inicial, o projeto passou por uma série de evoluções significativas para adicionar novas funcionalidades e aumentar sua robustez.
+
+### 7.1. Calibração Avançada do Microfone
+O microfone externo (MAX9814) foi conectado à entrada analógica da placa BitDogLab. A calibração foi um processo iterativo em duas etapas:
+
+1. **Ajuste do Piso de Ruído:** A constante `V_REF_DB` em `src/utils/microfone/mic.h` foi ajustada para alinhar a leitura de dB em silêncio com um decibelímetro de referência.
+2. **Ajuste da Faixa Dinâmica:** Como o microfone possui Controle Automático de Ganho (AGC) que comprime a faixa dinâmica, a fórmula de cálculo em `get_db_simulated` (no arquivo `src/utils/microfone/mic.c`) foi modificada para "esticar" a escala de dB, garantindo que os sons altos também correspondessem à referência. A fórmula final calibrada foi:
+
+   ```
+   db_level = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
+   ```
+
+### 7.2. Alarme Sonoro e Lógica de Interface
+Foi adicionado um buzzer para emitir um alarme sonoro quando o nível de ruído atinge a classificação "Alto". Para imitar a interface de aplicativos de decibelímetro, a ledbar foi ajustada para exibir faixas de cores (verde, amarelo, vermelho) de forma proporcional na matriz de 25 LEDs.
+
+### 7.3. Transição para Arquitetura Multicore
+A primeira implementação do alarme sonoro usava funções de sleep que eram bloqueantes, ou seja, "congelavam" todo o sistema enquanto o som era emitido. Isso fazia com que a matriz de LED e o display parassem de atualizar, o que era inaceitável para um sistema de monitoramento em tempo real.
+
+Para resolver isso, o sistema foi refatorado para usar os dois núcleos do processador RP2040:
+
+- **Núcleo 0 (main):** Ficou responsável pela lógica principal, incluindo a amostragem de áudio via DMA, o processamento dos dados e o controle do alarme sonoro.
+- **Núcleo 1 (core1_entry):** Foi dedicado exclusivamente a atualizar a interface do usuário (matriz de LED e display OLED), garantindo que ela permanecesse fluida e responsiva, independentemente do que o Núcleo 0 estivesse fazendo.
+
+A comunicação entre os núcleos é feita através de variáveis globais `volatile`.
+
+### 7.4. Desafios Atuais e Próximos Passos (Depuração)
+Apesar da arquitetura multicore ter sido implementada corretamente, dois problemas persistem, indicando um conflito de hardware de baixo nível mais complexo do que o esperado:
+
+1. **Congelamento da Interface Durante o Alarme:** Mesmo com os núcleos separados, a ativação do buzzer (que usa o periférico PWM) ainda causa o congelamento da matriz de LED (que usa o periférico PIO) e, por vezes, do display (I2C). A hipótese atual é que a alta frequência de operação do PWM está causando interferência nos temporizadores ou no barramento de dados que o PIO e o I2C necessitam para operar, desestabilizando a comunicação do Núcleo 1 com a interface.
+2. **Leituras Incorretas ("Salto para 30 dB"):** O sistema ocasionalmente exibe uma leitura válida de som seguida imediatamente por uma leitura do valor mínimo (30 dB), especialmente após um som alto e repentino. A causa raiz foi identificada como uma falha na inicialização do canal de DMA (corrigida em `dma.c`) e a falta de um reset robusto do hardware ADC/DMA entre as amostragens (corrigido na função `sample_mic` em `mic.c`).
+
+O próximo passo crucial na depuração é resolver o conflito de hardware. A estratégia atual é criar um "cessar-fogo" gerenciado por software, onde o Núcleo 1 intencionalmente pausa a atualização da matriz de LED (a tarefa mais sensível ao tempo) durante o 1 segundo em que o alarme sonoro está ativo, evitando assim o travamento do sistema.
