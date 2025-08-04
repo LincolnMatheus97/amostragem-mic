@@ -7,7 +7,7 @@
 #define LEDS_VERDES 13
 #define LEDS_AMARELOS 7
 #define LEDS_VERMELHOS 5
-#define MIN_DB_MAPA 35.0f
+#define MIN_DB_MAPA 30.0f
 #define MAX_DB_MAPA 85.0f
 
 #define CANAL_PIO pio0
