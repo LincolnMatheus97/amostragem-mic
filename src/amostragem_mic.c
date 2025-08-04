@@ -1,93 +1,127 @@
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
+#include "hardware/timer.h"
 #include "display.h"
 #include "dma.h"
 #include "mic.h"
 #include "matriz.h"
+#include "buzzer.h"
 
+// Variáveis globais para comunicação entre os núcleos
+volatile float g_db_level = 0.0f;
+volatile int g_qnt_leds_acessos = 0;
+volatile const char* g_sound_level_str = "Iniciando";
+volatile bool g_alarm_beeping = false;
+
+// --- NÚCLEO 1: APENAS INTERFACE DE USUÁRIO ---
+void core1_entry() {
+    // 1. Inicializa APENAS o hardware da interface (Display e Matriz)
+    inicializar_matriz();
+    init_barr_i2c();
+    init_display();
+
+    // 2. Mostra as mensagens de boas-vindas
+    clear_display();
+    draw_display(10, 32, 1, "INICIANDO SISTEMA");
+    show_display();
+    sleep_ms(2000);
+
+    clear_display();
+    draw_display(5, 28, 1, "SISTEMA ATIVO");
+    show_display();
+    sleep_ms(2000);
+
+    // 3. Loop infinito de atualização da UI
+    char sound_level_local[16];
+    while (1) {
+        float db_level_local = g_db_level;
+        int leds_local = g_qnt_leds_acessos;
+        strcpy(sound_level_local, (const char *)g_sound_level_str);
+
+        if (!g_alarm_beeping) {
+            atualizar_ledbar(leds_local);
+            renderizar();
+        }
+        display_update(db_level_local, sound_level_local);
+
+        sleep_ms(50);
+    }
+}
+
+// --- NÚCLEO 0: APENAS LÓGICA E PROCESSAMENTO ---
 int main()
 {
     stdio_init_all();
-    init_barr_i2c(); // Inicializa a barramento I2C para o display OLED
-    init_display(); // Inicializa o display OLED
-    inicializar_matriz();
-
-    limpar_matriz();
     
-    clear_display();
-    char boas_vindas[20];
-    snprintf(boas_vindas, sizeof(boas_vindas), "INICIANDO SISTEMA");
-    draw_display(10, 32, 1, boas_vindas);
-    show_display();
-    sleep_ms(3000);
-
-    clear_display();
+    inicializar_pwm_buzzer(PINO_BUZZER);
     init_config_adc();
-    init_config_dma();
-    char init_mic[20];
-    snprintf(init_mic, sizeof(init_mic), "CONFIGURANDO O MIC");
-    draw_display(10, 32, 1, init_mic);
-    show_display();
+    init_config_dma(); 
+
+    printf("Lancando interface no Nucleo 1...\n");
+    multicore_launch_core1(core1_entry);
     
-    sleep_ms(4000);
+    sleep_ms(4000); 
+
+    // --- MUDANÇA: Nova máquina de estados para o alarme ---
+    enum AlarmState { IDLE, BEEPING, COOLDOWN };
+    enum AlarmState alarm_state = IDLE;
+
+    uint64_t alarme_start_time = 0;
+    const uint64_t ALARME_DURACAO_US = 1000 * 1000; // 1 segundo em microssegundos
 
     while (1)
     {
-        sample_mic(); // Amostra o microfone usando DMA
+        sample_mic();
+        float voltage_rms = get_voltage_rms();
+        float db_level = get_db_simulated(voltage_rms);
+        const char* sound_level = classify_sound_level(db_level);
 
-        float voltage_rms = get_voltage_rms(); // Obtém a tensão RMS do microfone
-        float db_level = get_db_simulated(voltage_rms); // Calcula o nível relativo de dB a partir da tensão RMS
-        const char* sound_level = classify_sound_level(db_level); // Classifica o nível sonoro
-
-        printf("Debug: O nível de dB é %.1f, e a voltagem rms do mic é %.1f\n", db_level, voltage_rms);
-
-        int qnt_leds_acessos = 0;
-        if (db_level > MIN_DB_MAPA)
-        {
-            qnt_leds_acessos = ((db_level - MIN_DB_MAPA) / (MAX_DB_MAPA - MIN_DB_MAPA)) * QTD_LEDS;
-        }
-
+        g_db_level = db_level;
+        g_sound_level_str = sound_level;
+        
+        int qnt_leds_acessos = (int)((db_level - MIN_DB_MAPA) / (MAX_DB_MAPA - MIN_DB_MAPA) * QTD_LEDS);
         if (qnt_leds_acessos > QTD_LEDS) {
             qnt_leds_acessos = QTD_LEDS;
         } else if(qnt_leds_acessos < 1) {
             qnt_leds_acessos = 1;
         }
+        g_qnt_leds_acessos = qnt_leds_acessos;
 
-        atualizar_ledbar(qnt_leds_acessos);
-        renderizar();
+        // --- MÁQUINA DE ESTADOS DO ALARME ---
+        switch (alarm_state) {
+            case IDLE:
+                // Se o som ficar alto, começa a apitar.
+                if (strcmp(sound_level, "Alto") == 0) {
+                    printf("ALERTA: Ruido alto detectado. Iniciando beep.\n");
+                    // Para deixar o som mais alto, aumente a frequência. Tente 2000, 3000, etc.
+                    set_pwm_buzzer(PINO_BUZZER, 3000, 50); // Som mais agudo e alto
+                    alarme_start_time = time_us_64();
+                    alarm_state = BEEPING;
+                }
+                break;
 
-        clear_display();
-
-        char title[30];
-        snprintf(title, sizeof(title), "Intensidade Sonora");
-        draw_display(10, 0, 1, title);
-
-        char db_val[30];
-        snprintf(db_val, sizeof(db_val), "Nivel: %.1f dB", db_level); 
-        draw_display(0, 16, 1, db_val);
-        
-        char nivel_desc[30];
-        char aviso_extra[30] = "";
-
-        if (sound_level == "Baixo") {
-            snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Baixo");
-            snprintf(aviso_extra, sizeof(aviso_extra), "Nivel Seguro!");
-        } else if (sound_level == "Moderado") {
-            snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Moderado");
-            snprintf(aviso_extra, sizeof(aviso_extra), "Cuidado com o tempo!");
-        } else {
-            snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Alto");
-            snprintf(aviso_extra, sizeof(aviso_extra), "Nivel Prejudicial!");
+            case BEEPING:
+                // Se o beep já tocou por tempo suficiente, para e entra em cooldown.
+                if (time_us_64() - alarme_start_time > ALARME_DURACAO_US) {
+                    printf("Beep de 1s finalizado. Entrando em modo Cooldown.\n");
+                    set_pwm_buzzer(PINO_BUZZER, 0, 0); // Desliga o buzzer
+                    alarm_state = COOLDOWN;
+                }
+                break;
+            
+            case COOLDOWN:
+                // Fica neste estado (com o buzzer desligado) até o som baixar.
+                // Isso evita que o alarme toque repetidamente.
+                if (strcmp(sound_level, "Alto") != 0) {
+                    printf("Ruido normalizado. Sistema de alerta rearmado.\n");
+                    alarm_state = IDLE;
+                }
+                break;
         }
 
-        draw_display(0, 32, 1, nivel_desc);
-
-        if (aviso_extra[0] != '\0') { // Se a string de aviso não estiver vazia
-            draw_display(0, 48, 1, aviso_extra);
-        }
-
-        show_display();
-        
+        printf("Debug Nucleo 0: dB: %.1f, Class: %s, AlarmState: %d\n", g_db_level, g_sound_level_str, alarm_state);
         sleep_ms(100); 
     }
 

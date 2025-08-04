@@ -20,19 +20,38 @@ void init_config_adc() // Inicializa o ADC (Conversor Analógico-Digital) para o
 
 void sample_mic() // Amostra o microfone usando DMA
 {
-    adc_fifo_drain(); // Limpa o FIFO do ADC antes de iniciar a amostragem
-    adc_run(false);   // Desliga o ADC antes de configurar o DMA
-
-    dma_channel_configure(dma_channel, &dma_cfg,
-                          adc_buffer,
-                          &(adc_hw->fifo),
-                          SAMPLES,
-                          true); // Configura o canal DMA para transferir dados do ADC para o buffer adc_buffer
-
-    adc_run(true); // Liga o ADC para iniciar a amostragem
-    dma_channel_wait_for_finish_blocking(dma_channel);
-
+    // ETAPA 1: PARADA E LIMPEZA GERAL
+    // Garante que qualquer operação anterior seja completamente interrompida para evitar conflitos.
+    dma_channel_abort(dma_channel);
     adc_run(false);
+
+    // Drena o FIFO do ADC para remover quaisquer dados antigos ou corrompidos.
+    adc_fifo_drain();
+
+    // LIMPA A FLAG DE ERRO DE OVERFLOW. Esta é a correção mais importante para o seu problema.
+    // Se um som muito alto causou um erro, esta linha o reseta.
+    adc_hw->fcs |= ADC_FCS_OVER_BITS;
+
+
+    // ETAPA 2: RECONFIGURAÇÃO E PARTIDA
+    // Reconfigura o DMA para começar a escrever no início do nosso buffer.
+    dma_channel_configure(
+        dma_channel,
+        &dma_cfg,
+        adc_buffer,           // Ponteiro para o buffer de destino
+        &adc_hw->fifo,          // Ponteiro para a fonte (ADC FIFO)
+        SAMPLES,              // Quantidade de amostras a capturar
+        true                    // Inicia a transferência imediatamente
+    );
+
+    // Liga a amostragem contínua do ADC
+    adc_run(true);
+
+
+    // ETAPA 3: ESPERA SINCRONIZADA
+    // Pausa o Núcleo 0 aqui até o DMA confirmar que preencheu todo o buffer.
+    // Isso garante que nunca processaremos dados incompletos.
+    dma_channel_wait_for_finish_blocking(dma_channel);
 }
 
 // Obtém a tensão RMS (Root Mean Square) do microfone
