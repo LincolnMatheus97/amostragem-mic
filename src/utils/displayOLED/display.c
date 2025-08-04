@@ -30,3 +30,37 @@ void clear_display()
 {
     ssd1306_clear(&display);
 }
+
+void display_update(float db_level, const char* sound_level) {
+    clear_display();
+
+    draw_display(10, 0, 1, "Intensidade Sonora");
+
+    char db_val[30];
+    // Agora db_level é float, então "%.1f" vai funcionar corretamente
+    snprintf(db_val, sizeof(db_val), "Nivel: %.1f dB", db_level); 
+    draw_display(0, 16, 1, db_val);
+    
+    char nivel_desc[30];
+    char aviso_extra[30] = "";
+
+    // CORRIGIDO: Comparação de strings em C deve ser feita com strcmp()
+    if (strcmp(sound_level, "Baixo") == 0) {
+        snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Baixo");
+        snprintf(aviso_extra, sizeof(aviso_extra), "Nivel Seguro!");
+    } else if (strcmp(sound_level, "Moderado") == 0) {
+        snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Moderado");
+        snprintf(aviso_extra, sizeof(aviso_extra), "Cuidado com o tempo!");
+    } else {
+        snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Alto");
+        snprintf(aviso_extra, sizeof(aviso_extra), "Nivel Prejudicial!");
+    }
+
+    draw_display(0, 32, 1, nivel_desc);
+
+    if (aviso_extra[0] != '\0') {
+        draw_display(0, 48, 1, aviso_extra);
+    }
+
+    show_display();
+}
