@@ -18,13 +18,14 @@
 #define ADC_STEP (3.3f/5.f)
 
 // Constantes para cálculo de dB (decibeis)
-#define V_REF_DB 0.012f                 // Tensão de referência para cálculo de dB (40uV RMS)
+#define V_REF_DB 0.014f                 // Tensão de referência para cálculo de dB (40uV RMS)
 #define MIN_V_RMS_FOR_DB 0.000001f      // Tensão RMS mínima para cálculo de dB (1uV RMS)
 #define MIN_DB_DISPLAY_LEVEL 30.0f      // Nível mínimo de dB a ser exibido
 
 // Limiares para classificação de nível sonoro (ajuste conforme necessário)
 #define LIMIAR_DB_BAIXO_MODERADO 60.0f
 #define LIMIAR_DB_MODERADO_ALTO 80.0f
+#define TEMPO_ALARME_SUSTENTADO_S 3 
 
 void init_config_adc();
 void sample_mic();

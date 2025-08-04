@@ -59,33 +59,28 @@ void sample_mic() // Amostra o microfone usando DMA
 // A tensão RMS é calculada a partir das amostras digitais do ADC, subtraindo o offset DC (Corrente Continua) e calculando a média dos quadrados das amostras AC.
 float get_voltage_rms()
 {
-    if (SAMPLES == 0)
-        return 0.0f;
+    if (SAMPLES == 0) return 0.0f;
 
+    // Calcula a média das amostras para encontrar o nível DC (offset)
     float dc_offset_digital = 0.0f;
     for (uint i = 0; i < SAMPLES; i++)
         dc_offset_digital += adc_buffer[i];
     dc_offset_digital /= SAMPLES;
 
+    // Calcula a soma dos quadrados da componente AC (amostra - offset DC)
     float sum_sq_ac_digital = 0.0f;
     for (uint i = 0; i < SAMPLES; i++) {
         float ac_sample = (float)adc_buffer[i] - dc_offset_digital;
         sum_sq_ac_digital += ac_sample * ac_sample;
     }
 
+    // Calcula o valor RMS digital (raiz da média dos quadrados)
     float rms_ac_digital = sqrtf(sum_sq_ac_digital / SAMPLES);
 
-    if (rms_ac_digital < 5.0f) // filtro de ruído
-        return 0.0f;
-
+    // Converte o valor RMS digital para uma tensão real em Volts
     float voltage_rms = rms_ac_digital * (3.3f / 4096.0f);
-
-    // suavização
-    // static float last_voltage_rms = 0.0f;
-    // voltage_rms = 0.5f * last_voltage_rms + 0.5f * voltage_rms;
-    // last_voltage_rms = voltage_rms;
-
-    return voltage_rms;
+    
+    return voltage_rms; // Retorna a tensão RMS "pura" desta amostragem
 }
 
 // Calcula o nível de dB (decibéis) a partir da tensão RMS do microfone.
@@ -93,27 +88,41 @@ float get_voltage_rms()
 // Onde V é a tensão RMS do microfone e V_REF_DB é a tensão de referência para o cálculo de dB (20uV RMS).
 float get_db_simulated(float voltage_rms)
 {
-    float db_level = 0.0f;
+    float db_level_cru;
 
-    if (voltage_rms < MIN_V_RMS_FOR_DB)
-    {
-        db_level = MIN_DB_DISPLAY_LEVEL;
-    }
-    else
-    {
-        db_level = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
+    // Passo 1: Calcula o dB "cru" a partir da tensão.
+    if (voltage_rms < MIN_V_RMS_FOR_DB) {
+        db_level_cru = MIN_DB_DISPLAY_LEVEL;
+    } else {
+        db_level_cru = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
     }
 
-    if (db_level < MIN_DB_DISPLAY_LEVEL)
-    {
-        db_level = MIN_DB_DISPLAY_LEVEL;
-    }
-    if (db_level > 120.0f)
-    {
-        db_level = 120.0f;
+    // Garante que o valor bruto não seja menor que o piso antes de processar.
+    if (db_level_cru < MIN_DB_DISPLAY_LEVEL) {
+        db_level_cru = MIN_DB_DISPLAY_LEVEL;
     }
 
-    return db_level;
+    // Passo 2: Suavização com ATAQUE RÁPIDO e DECAIMENTO LENTO.
+    static float db_level_suavizado = MIN_DB_DISPLAY_LEVEL;
+    
+    if (db_level_cru > db_level_suavizado) {
+        // ATAQUE RÁPIDO: Se o som novo é mais alto, a barra sobe rapidamente.
+        db_level_suavizado = 0.40f * db_level_suavizado + 0.60f * db_level_cru;
+    } else {
+        // DECAIMENTO LENTO: Se o som está diminuindo, a barra desce suavemente.
+        db_level_suavizado = 0.96f * db_level_suavizado + 0.04f * db_level_cru;
+    }
+
+    // Passo 3: Aplica os limites finais.
+    float db_level_final = db_level_suavizado;
+    if (db_level_final < MIN_DB_DISPLAY_LEVEL) {
+        db_level_final = MIN_DB_DISPLAY_LEVEL;
+    }
+    if (db_level_final > 120.0f) {
+        db_level_final = 120.0f;
+    }
+
+    return db_level_final;
 }
 
 const char* classify_sound_level(float db_level)
