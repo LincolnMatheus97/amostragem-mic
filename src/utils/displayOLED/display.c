@@ -37,14 +37,12 @@ void display_update(float db_level, const char* sound_level) {
     draw_display(10, 0, 1, "Intensidade Sonora");
 
     char db_val[30];
-    // Agora db_level é float, então "%.1f" vai funcionar corretamente
     snprintf(db_val, sizeof(db_val), "Nivel: %.1f dB", db_level); 
     draw_display(0, 16, 1, db_val);
     
     char nivel_desc[30];
     char aviso_extra[30] = "";
 
-    // CORRIGIDO: Comparação de strings em C deve ser feita com strcmp()
     if (strcmp(sound_level, "Baixo") == 0) {
         snprintf(nivel_desc, sizeof(nivel_desc), "Classif. Baixo");
         snprintf(aviso_extra, sizeof(aviso_extra), "Nivel Seguro!");
