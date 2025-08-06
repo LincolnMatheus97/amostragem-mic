@@ -10,12 +10,6 @@ void inicializar_pwm_buzzer(uint pin) {
     pwm_init(slice_num, &config, true);
 }
 
-/**
- * @brief Função não-bloqueante para controlar o buzzer.
- * @param pin O pino GPIO do buzzer.
- * @param freq A frequência do som em Hz. Se for 0, desliga o som.
- * @param duty O ciclo de trabalho (duty cycle) em porcentagem (0 a 100). 50 é um bom valor.
- */
 void set_pwm_buzzer(uint pin, uint freq, uint duty) {
     uint slice_num = pwm_gpio_to_slice_num(pin);
 
