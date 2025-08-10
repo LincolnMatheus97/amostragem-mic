@@ -73,37 +73,37 @@ float get_voltage_rms()
 
 float get_db_simulated(float voltage_rms)
 {
-    float db_level_raw;
+    float nivel_db_cru;
 
     if (voltage_rms < MIN_V_RMS_FOR_DB) {
-        db_level_raw = MIN_DB_DISPLAY_LEVEL;
+        nivel_db_cru = MIN_DB_DISPLAY_LEVEL;
     } else {
-        db_level_raw = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
+        nivel_db_cru = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
     }
 
-    if (db_level_raw < MIN_DB_DISPLAY_LEVEL) {
-        db_level_raw = MIN_DB_DISPLAY_LEVEL;
+    if (nivel_db_cru < MIN_DB_DISPLAY_LEVEL) {
+        nivel_db_cru = MIN_DB_DISPLAY_LEVEL;
     }
 
-    static float smoothed_db_level = MIN_DB_DISPLAY_LEVEL;
+    static float nivel_db_suavizado = MIN_DB_DISPLAY_LEVEL;
     
-    if (db_level_raw > smoothed_db_level) {
+    if (nivel_db_cru > nivel_db_suavizado) {
         // ATAQUE RÁPIDO
-        smoothed_db_level = 0.40f * smoothed_db_level + 0.60f * db_level_raw;
+        nivel_db_suavizado = 0.40f * nivel_db_suavizado + 0.60f * nivel_db_cru;
     } else {
         // DECAIMENTO LENTO
-        smoothed_db_level = 0.96f * smoothed_db_level + 0.04f * db_level_raw;
+        nivel_db_suavizado = 0.96f * nivel_db_suavizado + 0.04f * nivel_db_cru;
     }
 
-    float final_db_level = smoothed_db_level;
-    if (final_db_level < MIN_DB_DISPLAY_LEVEL) {
-        final_db_level = MIN_DB_DISPLAY_LEVEL;
+    float nivel_db_final = nivel_db_suavizado;
+    if (nivel_db_final < MIN_DB_DISPLAY_LEVEL) {
+        nivel_db_final = MIN_DB_DISPLAY_LEVEL;
     }
-    if (final_db_level > 120.0f) {
-        final_db_level = 120.0f;
+    if (nivel_db_final > 120.0f) {
+        nivel_db_final = 120.0f;
     }
 
-    return final_db_level;
+    return nivel_db_final;
 }
 
 #else
@@ -137,38 +137,38 @@ float get_voltage_rms()
 
 float get_db_simulated(float voltage_rms)
 {
-    float db_level_raw;
+    float nivel_db_cru;
 
     if (voltage_rms < MIN_V_RMS_FOR_DB) {
-        db_level_raw = MIN_DB_DISPLAY_LEVEL;
+        nivel_db_cru = MIN_DB_DISPLAY_LEVEL;
     } else {
-        db_level_raw = 25.0f * log10f(voltage_rms / V_REF_DB) + 47.0f;
+        nivel_db_cru = 25.0f * log10f(voltage_rms / V_REF_DB) + 47.0f;
     }
 
-    if (db_level_raw < MIN_DB_DISPLAY_LEVEL) {
-        db_level_raw = MIN_DB_DISPLAY_LEVEL;
+    if (nivel_db_cru < MIN_DB_DISPLAY_LEVEL) {
+        nivel_db_cru = MIN_DB_DISPLAY_LEVEL;
     }
 
-    static float smoothed_db_level = MIN_DB_DISPLAY_LEVEL;
+    static float nivel_db_suavizado = MIN_DB_DISPLAY_LEVEL;
     
-    if (db_level_raw > smoothed_db_level) {
+    if (nivel_db_cru > nivel_db_suavizado) {
         // ATAQUE RÁPIDO
-        smoothed_db_level = 0.40f * smoothed_db_level + 0.60f * db_level_raw;
+        nivel_db_suavizado = 0.40f * nivel_db_suavizado + 0.60f * nivel_db_cru;
     } else {
         // DECAIMENTO LENTO
-        smoothed_db_level = 0.96f * smoothed_db_level + 0.04f * db_level_raw;
+        nivel_db_suavizado = 0.96f * nivel_db_suavizado + 0.04f * nivel_db_cru;
     }
 
-    float final_db_level = smoothed_db_level;
-    if (final_db_level < MIN_DB_DISPLAY_LEVEL) {
-        final_db_level = MIN_DB_DISPLAY_LEVEL;
+    float nivel_db_final = nivel_db_suavizado;
+    if (nivel_db_final < MIN_DB_DISPLAY_LEVEL) {
+        nivel_db_final = MIN_DB_DISPLAY_LEVEL;
     }
-    if (final_db_level > 120.0f) {
-        final_db_level = 120.0f;
+    if (nivel_db_final > 120.0f) {
+        nivel_db_final = 120.0f;
     }
-    printf("[DEBUG] RAW dB: %.2f | RMS: %.6f | V_REF_DB: %.6f\n", db_level_raw, voltage_rms, V_REF_DB);
+    printf("[DEBUG] RAW dB: %.2f | RMS: %.6f | V_REF_DB: %.6f\n", nivel_db_cru, voltage_rms, V_REF_DB);
 
-    return final_db_level;
+    return nivel_db_final;
 }
 
 #endif // Fim da seleção de código (USE_EXTERNAL_MIC)
