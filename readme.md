@@ -124,6 +124,25 @@ O sistema ocasionalmente exibia uma leitura válida de som seguida por um "salto
 2. Limitar este valor a um piso seguro de 30 dB para evitar que números negativos extremos (do logaritmo) entrem no próximo passo.
 3. Aplicar um filtro de suavização assimétrica ("ataque rápido, decaimento lento") ao valor já seguro, garantindo que a ledbar suba instantaneamente com o som e desça suavemente, resultando em uma visualização profissional e estável.
 
+### 7.6 Calibração Precisa dos Microfones Interno e Externo
+- Implementada calibração utilizando **referência de dB (`V_REF_DB`) ajustada experimentalmente** com base em comparações contra um aplicativo confiável de medição de decibéis.
+- Ajustada fórmula de conversão para corrigir a diferença entre valores medidos no microfone da placa BitDogLab e no aplicativo de referência.
+- Realizados testes com **níveis de silêncio, fala e palmas**, obtendo alinhamento próximo entre medidor externo e valores lidos pelo sistema.
+- Calibração feita de forma **compatível para microfone interno (BitDogLab) e externo (MAX9814)**, garantindo que o mesmo código funcione para ambos sem ajustes adicionais.
+- Inclusão de **offsets** e ajustes na escala para reduzir sensibilidade excessiva em picos sonoros.
+
+### 7.7 Implementação de Filtro Anti-Pico (Histerese de Nível Sonoro)
+- Adicionado sistema que **congela o nível de referência** (`db_antes_buzzer`) assim que o alarme é ativado, evitando aumentos abruptos por distorções ou saturação.
+- Se o som aumentar mais de **+3 dB** em relação ao valor no momento da ativação do buzzer, o sistema limita a leitura ao valor anterior, evitando falsos alarmes e loops de feedback.
+- Essa histerese atua apenas enquanto o alarme está ativo.
+
+### 7.8 Lógica de Alarme Sustentado e Controle Contínuo do Buzzer
+- Criada lógica para só ativar o alarme após **detectar nível "Alto" por um tempo contínuo configurável** (`TEMPO_ALARME_SUSTENTADO_S`).
+- Previne disparos por ruídos breves e não prejudiciais.
+- **Buzzer contínuo:** uma vez ativado, permanece ligado enquanto o nível permanecer "Alto".
+- Desligamento automático quando o som retorna para níveis "Moderado" ou "Baixo".
+- Todo o controle foi implementado no **núcleo 0**, garantindo leitura e decisão centralizada, sem travar a atualização gráfica do núcleo 1.
+
 ## 8. Diagrama de Sequência
 
 Abaixo está o diagrama de sequência que ilustra o fluxo de operação do sistema, desde a captura do som até a exibição no display OLED, incluindo a lógica de cooperação entre os núcleos para o alarme sonoro e a atualização da interface.
