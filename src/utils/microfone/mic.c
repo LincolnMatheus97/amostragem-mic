@@ -78,7 +78,7 @@ float get_db_simulated(float voltage_rms)
     if (voltage_rms < MIN_V_RMS_FOR_DB) {
         nivel_db_cru = MIN_DB_DISPLAY_LEVEL;
     } else {
-        nivel_db_cru = 73.0f * log10f(voltage_rms / V_REF_DB) - 40.0f;
+        nivel_db_cru = 73.0f * log10f(voltage_rms / V_REF_DB) - 28.5f;
     }
 
     if (nivel_db_cru < MIN_DB_DISPLAY_LEVEL) {
