@@ -19,17 +19,17 @@ volatile bool g_pause_buzzer_para_renderizacao = false; // Flag para cooperaçã
 // --- NÚCLEO 1: APENAS INTERFACE DE USUÁRIO ---
 void core1_entry() {
     inicializar_matriz();
-    init_barr_i2c();
-    init_display();
+    // init_barr_i2c();
+    // init_display();
 
-    clear_display();
-    draw_display(10, 32, 1, "INICIANDO SISTEMA");
-    show_display();
-    sleep_ms(2000);
-    clear_display();
-    draw_display(10, 32, 1, "SISTEMA ATIVO");
-    show_display();
-    sleep_ms(2000);
+    // clear_display();
+    // draw_display(10, 32, 1, "INICIANDO SISTEMA");
+    // show_display();
+    // sleep_ms(2000);
+    // clear_display();
+    // draw_display(10, 32, 1, "SISTEMA ATIVO");
+    // show_display();
+    // sleep_ms(2000);
 
     char nivel_som_local[16];
     while (1) {
@@ -56,7 +56,7 @@ void core1_entry() {
         }
         
         // O display OLED continua atualizando normalmente
-        display_update(db_level_local, nivel_som_local);
+        // display_update(db_level_local, nivel_som_local);
 
         sleep_ms(30);
     }
